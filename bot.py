@@ -36,14 +36,34 @@ def main_text(message):
     elif message.text == 'магазин':
         bot.send_message(message.chat.id, 'Введите лот', reply_markup=insert_lots(user_makeup))
         bot.register_next_step_handler(message, shop_info, bot)
+    elif message.text == 'стать зрителем':
+        bot.send_message(message.chat.id, 'Выберите сложность', reply_markup=insert_level(user_makeup))
+        bot.register_next_step_handler(message, get_levels_from)
+    elif message.text == 'мои задания':
+        user_makeup.row('Я зритель')
+        user_makeup.row('Я исполнитель')
+        bot.send_message(message.chat.id, 'Выберите тип заданий', reply_markup=user_makeup)
+    elif message.text == 'FAQ':
+        bot.send_message(message.chat.id, 'FAQ')
+    elif message.text == 'служба поддержки':
+        bot.send_message(message.chat.id, 'Служба поддержки не доступна')
     # print(message.text)
 
 
+def get_levels_from(message):
+    # get_tasks_by_level
+    user_makeup = telebot.types.ReplyKeyboardRemove()
+    if message.text in levels:
+        bot.send_message(message.chat.id, f'Список заданий для уровня {message.text}', reply_markup=user_makeup)
+
+
 def get_level(message):
+    user_makeup = telebot.types.ReplyKeyboardRemove()
     if message.text in levels:
         # print(message.text)
-        bot.send_message(message.chat.id, 'Введите название')
+        bot.send_message(message.chat.id, 'Введите название', reply_markup=user_makeup)
         bot.register_next_step_handler(message, task_name, bot)
+
 
 if __name__ == '__main__':
     bot.polling()

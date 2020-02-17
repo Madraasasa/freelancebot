@@ -34,5 +34,6 @@ def task_date_tasker(message, name, desc, sum, sex,age, bot):
 
 
 def task_date(message, name, desc, sum, sex, age, tasker_dt, bot):
+    bot.send_message(message.chat.id, f'{name}, {desc}, {sum}, {sex},{age}, {tasker_dt}, {message.text}')
     print(name, desc, sum, sex,age, tasker_dt, message.text)
 

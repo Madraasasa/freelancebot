@@ -25,4 +25,5 @@ def sex_tasker(message, name, lastname, age, city,bot):
 
 
 def desc_tasker(message, name, lastname, age, city,sex,bot):
+    bot.send_message(message.chat.id, f'{name} {lastname} {age} {city} {sex} {message.text}')
     print(name, lastname, age, city, sex, message.text)
