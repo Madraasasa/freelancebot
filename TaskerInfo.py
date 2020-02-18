@@ -1,9 +1,3 @@
-def name_tasker(message, bot):
-    bot.send_message(message.chat.id, 'Введите фамилию')
-    print(message.text)
-    bot.register_next_step_handler(message, lastname_tasker, message.text, bot)
-
-
 def lastname_tasker(message, name, bot):
     bot.send_message(message.chat.id, 'Введите возраст')
     bot.register_next_step_handler(message, age_tasker, name, message.text, bot)
