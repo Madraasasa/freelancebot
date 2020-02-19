@@ -4,6 +4,7 @@ from TaskTemplate import *
 from TaskerInfo import *
 from Shop import *
 from database import *
+from Donate import *
 # from db import *
 # from parse_movie import *
 import random
@@ -16,7 +17,7 @@ user_makeup = telebot.types.ReplyKeyboardMarkup(True, False)
 @bot.message_handler(content_types=["text"])
 def handle_text(message):
     user_makeup = telebot.types.ReplyKeyboardMarkup(True, False)
-    print(main_buttons)
+    # print(main_buttons)
     if message.text in main_buttons:
         main_text(message)
     else:
@@ -38,9 +39,12 @@ def main_text(message):
         bot.register_next_step_handler(message, get_level)
     elif message.text == main_buttons[2]:
         user_makeup = telebot.types.ReplyKeyboardMarkup(True, False)
-        user_makeup.row('назад')
-        bot.send_message(message.chat.id, 'Введите имя',reply_markup=user_makeup)
-        bot.register_next_step_handler(message, name_tasker, bot)
+        if getuserinfo(message.chat.id):
+            bot.send_message(message.chat.id, 'Выберите сложность', reply_markup=insert_level(user_makeup))
+            bot.register_next_step_handler(message, get_levels_from, 1)
+        else:
+            bot.send_message(message.chat.id, 'Введите имя', reply_markup=user_makeup)
+            bot.register_next_step_handler(message, name_tasker, bot)
     elif message.text == main_buttons[5]:
         bot.send_message(message.chat.id, 'Введите лот', reply_markup=insert_lots(user_makeup))
         bot.register_next_step_handler(message, shop_info, bot)
@@ -55,10 +59,30 @@ def main_text(message):
         bot.send_message(message.chat.id, 'FAQ')
     elif message.text == main_buttons[6]:
         bot.send_message(message.chat.id, 'Служба поддержки не доступна')
+    elif message.text == main_buttons[7]:
+        if getuserinfo(message.chat.id):
+            user_makeup = telebot.types.ReplyKeyboardMarkup(True, False)
+            user_makeup.row('редактировать')
+            user_makeup.row('назад')
+            bot.send_message(message.chat.id, getuserinfo(message.chat.id), reply_markup=user_makeup)
+            bot.register_next_step_handler(message, edit_account)
+        else:
+            user_makeup = telebot.types.ReplyKeyboardMarkup(True, False)
+            user_makeup.row('назад')
+            bot.send_message(message.chat.id, 'Введите имя', reply_markup=user_makeup)
+            # bot.register_next_step_handler(message, name_tasker, bot)
     # print(message.text)
 
 
-def get_levels_from(message):
+def edit_account(message):
+    if message.text == 'редактировать':
+        bot.send_message(message.chat.id, 'Введите имя')
+        bot.register_next_step_handler(message, name_tasker, bot)
+    elif message.text == 'назад':
+        handle_text(message)
+
+
+def get_levels_from(message, status=0):
     # get_tasks_by_level
     user_makeup = telebot.types.ReplyKeyboardMarkup(True, False)
     # print(message.text)
@@ -66,8 +90,16 @@ def get_levels_from(message):
     if message.text in levels:
     # aaa = select_task_by_level(message.text)
     # print(aaa)
-        bot.send_message(message.chat.id, select_task_by_level(message.text), parse_mode='markdown', reply_markup=insert_main(user_makeup))
+        bot.send_message(message.chat.id, select_task_by(message.text, status), parse_mode='markdown', reply_markup=insert_main(user_makeup))
+
+        if select_task_by(message.text, status) != 'Заданий для данного случая нет':
+            bot.send_message(message.chat.id, 'Введите id задания')
+            bot.register_next_step_handler(message,task_get_id,bot)
+        else:
+            handle_text(message)
     elif message.text == 'назад':
+        handle_text(message)
+    else:
         handle_text(message)
 
 
@@ -90,8 +122,6 @@ def name_tasker(message, bot):
     else:
         bot.send_message(message.chat.id, 'Введите фамилию')
         bot.register_next_step_handler(message, lastname_tasker, message.text, bot)
-
-
 
 
 if __name__ == '__main__':
