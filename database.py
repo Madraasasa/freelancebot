@@ -190,10 +190,10 @@ def insert_donate(telegram_id,task_id,donate):
 #         return 0
 
 
-def get_taskbyid(task_id):
+def get_taskbyid(task_id, status=0):
     con = p.connect(database='bot', user='postgres', host='localhost', password='VivaProgressio', port=5433)
     cur = con.cursor()
-    cur.execute(f'select * from public.botmain_task where id ={task_id}')
+    cur.execute(f'select * from public.botmain_task where id ={task_id} and status={status}')
     info = cur.fetchone()
     st = ''
     if info:
@@ -222,4 +222,50 @@ def select_task_by(level, status):
     except:
         return 'Заданий для данного случая нет'
 
+
+def insert_maker(task_id, telegram_id):
+    try:
+        con = p.connect(database='bot', user='postgres', host='localhost', password='VivaProgressio', port=5433)
+        cur = con.cursor()
+        cur.execute(f'''select max(id) from public.botmain_maker''')
+        info = list(cur.fetchone())[0]
+        print(info)
+        cur.close()
+        cur = con.cursor()
+        cur.execute(f'''insert into public.botmain_maker values({int(info or 0) + 1})''')
+        cur.close()
+
+        cur = con.cursor()
+        cur.execute(
+            f'''insert into public.botmain_maker_user_id(maker_id, user_id) values({int(info or 0) + 1}, {telegram_id})''')
+        cur.close()
+
+        cur = con.cursor()
+        cur.execute(f'''insert into public.botmain_maker_task_id(maker_id, task_id) values({int(info or 0) + 1}, {task_id})''')
+        cur.close()
+
+        cur = con.cursor()
+        cur.execute(f'''select id, current_sum, sum from public.botmain_task where id ={task_id}''')
+        # print(list(cur.fetchone()))
+        nlist = list(cur.fetchone())
+        info = nlist[0]
+        curb = nlist[1]
+        sum = nlist[2]
+        cur.close()
+        print(info, curb)
+
+
+        con.commit()
+
+        print(info)
+        return 1, f'Успешно добавлен донат'
+    except:
+        return 0, f'Произошла ошибка, повторите'
+
+
+
+
+# insert_maker(2, 0)
 # insert_donate(0,1, 150)
+
+
