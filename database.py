@@ -5,11 +5,6 @@ import datetime
 a = []
 
 
-# def start(message):
-#     cur.execute('select * from task')
-#     for row in cur:
-#         a.append(row[0])
-
 
 def insert_task(name, desc, sum, sex,age, tasker_dt, t_date, level, chat_id):
     try:
@@ -32,44 +27,20 @@ def insert_task(name, desc, sum, sex,age, tasker_dt, t_date, level, chat_id):
 
 
 
-
 def select_task_by_level(level):
     con = p.connect(database='bot', user='postgres', host='localhost', password='VivaProgressio', port=5433)
     cur = con.cursor()
-    cur.execute(f'''select id,name, "desc",sum,sex, ages, agee, tasker_d, t_date from public.botmain_task where level = '{level}'
+    cur.execute(f'''select id,name, "desc",sum,sex, ages, agee, tasker_d, t_date, current_sum from public.botmain_task where level = '{level}'
     ''')
     aa = ''
     m = cur.fetchall()
     # print(m)
     for i in m:
         ms = list(i)
-        aa += f''' *Задания ID* - *{ms[0]}*\nНазвание {ms[1]}\nОписание - {ms[2]}\nСтоимость - {ms[3]}\nПол исполнителя {ms[4]}\nСроки {ms[5]}-{ms[6]}\nСроки выбора исполнителя {ms[7]}\nдней Дата выполненя {ms[8]}дня/дней\n\n'''
+        aa += f''' *Задания ID* - *{ms[0]}*\nНазвание {ms[1]}\nОписание - {ms[2]}\nСтоимость - {ms[3]}\nТекущая сумма донатов {ms[9]}\nПол исполнителя {ms[4]}\nСроки {ms[5]}-{ms[6]}\nСроки выбора исполнителя {ms[7]}\nдней Дата выполненя {ms[8]}дня/дней\n\n'''
     con.close()
     return aa
 
-
-# insert_task('test_name1', 'test_name2', 100, 'Ж', '18-22','5','7', 'lite')
-# select_task_by_level('lite')
-#
-# def insert_task1(name, desc, sum, sex,age, tasker_dt, t_date, level, chat_id):
-#
-#     con = p.connect(database='bot', user='postgres', host='localhost', password='VivaProgressio', port=5433)
-#     cur = con.cursor()
-#     list_age = age.split('-')
-#     cur.execute('select count(*) from public.botmain_task')
-#     count = cur.fetchone()
-#     cur.close()
-#     cur = con.cursor()
-#     # id, name, "desc",  sum, sex, ages, aged,tasker_d,t_date, level,creator_id_id, status, current_sum, users_count, create_date,  user_id_id
-#     cur.execute(f'''INSERT INTO public.botmain_task(id, name, sex, level, status, current_sum, users_count, create_date, creator_id_id,  "desc", agee, ages, sum, t_date, tasker_d)
-# VALUES ({int(list(count)[0])+1},'{name}', '{sex}', '{level}', 0, 0, 0, '{datetime.date.today()}', {chat_id}, '{desc}', {list_age[1]},{list_age[0]},{sum}, {t_date}, {tasker_dt})''')
-#     con.commit()
-#     con.close()
-#     return int(list(count)[0])+1, 'Задание успешно добавлено'
-
-
-# a, b = insert_task('test_name1', 'test_name2', 100, 'мужской', '18-22','5','7', 'medium', 120929625)
-# print(a,b)
 
 def getuserinfo(chat_id):
     con = p.connect(database='bot', user='postgres', host='localhost', password='VivaProgressio', port=5433)
@@ -124,6 +95,33 @@ def get_buttons():
         return 0
 
 
+def check_user_balance(user_id):
+    try:
+        con = p.connect(database='bot', user='postgres', host='localhost', password='VivaProgressio', port=5433)
+        cur = con.cursor()
+        cur.execute(f'''select balance from public.botmain_user where telegram_id={user_id}''')
+        info = list(cur.fetchone())[0]
+        # print(info)
+        return info
+    except:
+        return 0
+        # print('error')
+
+
+def update_balance(telegram_id, balance):
+    try:
+        con = p.connect(database='bot', user='postgres', host='localhost', password='VivaProgressio', port=5433)
+        cur = con.cursor()
+        cur.execute(f'''update public.botmain_user set balance={int(check_user_balance(telegram_id)) + int(balance)} where telegram_id={telegram_id}''')
+        # info = list(cur.fetchone())[0]
+        con.commit()
+        # print(info)
+        return balance
+    except:
+        return 0
+        # print('error')
+
+
 def insert_donate(telegram_id,task_id,donate):
     try:
         con = p.connect(database='bot', user='postgres', host='localhost', password='VivaProgressio', port=5433)
@@ -156,18 +154,22 @@ def insert_donate(telegram_id,task_id,donate):
         res = int(curb) + int(donate)
         cur.execute(f'''UPDATE public.botmain_task SET current_sum={res} where id={info}''')
         cur.close()
+        cur = con.cursor()
+        cur.execute(f'''UPDATE public.botmain_user SET balance={int(check_user_balance(telegram_id))-int(donate)} where telegram_id={telegram_id}''')
+        cur.close()
         if sum <= res + res/10:
             cur = con.cursor()
             cur.execute(f'''UPDATE public.botmain_task SET status={1} where id={info}''')
             cur.close()
-        con.commit()
 
         con.commit()
 
+        con.commit()
+        a = check_user_balance(telegram_id)
         print(info)
-        return 1, f'Успешно добавлен донат'
+        return 1, f'Успешно добавлен донат', a
     except:
-        return 0, f'Произошла ошибка, повторите'
+        return 0, f'Произошла ошибка, повторите', a
 
 
 # def update_task_current(task_id, donate):
@@ -206,7 +208,7 @@ def select_task_by(level, status):
     try:
         con = p.connect(database='bot', user='postgres', host='localhost', password='VivaProgressio', port=5433)
         cur = con.cursor()
-        cur.execute(f'''select id,name, "desc",sum,sex, ages, agee, tasker_d, t_date from public.botmain_task where level = '{level}' and status={status}
+        cur.execute(f'''select id,name, "desc",sum,sex, ages, agee, tasker_d, t_date, current_sum from public.botmain_task where level = '{level}' and status={status}
         ''')
         aa = ''
         m = cur.fetchall()
@@ -214,7 +216,7 @@ def select_task_by(level, status):
         print(m)
         for i in m:
             ms = list(i)
-            aa += f''' *Задания ID* - *{ms[0]}*\nНазвание {ms[1]}\nОписание - {ms[2]}\nСтоимость - {ms[3]}\nПол исполнителя {ms[4]}\nСроки {ms[5]}-{ms[6]}\nСроки выбора исполнителя {ms[7]}\nдней Дата выполненя {ms[8]}дня/дней\n\n'''
+            aa += f''' *Задания ID* - *{ms[0]}*\nНазвание {ms[1]}\nОписание - {ms[2]}\nСтоимость - {ms[3]}\nТекущая сумма донатов -{ms[9]}\nПол исполнителя {ms[4]}\nСроки {ms[5]}-{ms[6]}\nСроки выбора исполнителя {ms[7]}\nдней Дата выполненя {ms[8]}дня/дней\n\n'''
         con.close()
         if len(aa)<1:
             return 'Заданий для данного случая нет'
@@ -263,9 +265,85 @@ def insert_maker(task_id, telegram_id):
         return 0, f'Произошла ошибка, повторите'
 
 
+# check_user_balance('120929625')
 
+def get_my_task(telegram_id):
+    try:
+        con = p.connect(database='bot', user='postgres', host='localhost', password='VivaProgressio', port=5433)
+        cur = con.cursor()
+        cur.execute(
+            f'''select bt.id, bt.name,bt.desc, bt.sum, bt.current_sum, ds.sum from public.botmain_task bt, (SELECT d.user_id, t.task_id, sum(dm.donate) as sum
+        FROM public.botmain_donate_donater_id d, public.botmain_donate_task_id t, public.botmain_donate dm
+    where d.donate_id =t.donate_id and dm.id = d.donate_id
+    group by d.user_id, t.task_id) ds
+    where bt.id = ds.task_id and ds.user_id = {telegram_id}
+                ''')
+        m = cur.fetchall()
+        aa= ''
+        print(m)
+        for i in m:
+            ms = list(i)
+            aa += f''' *Задания ID* - *{ms[0]}*\nНазвание {ms[1]}\nОписание - {ms[2]}\nСтоимость - {ms[3]}\nТекущая сумма донатов -{ms[4]}\nВаш донат {ms[5]}\n'''
+        con.close()
+        return aa
+    except:
+        return 'Произошла ошибка, либо у вас нет донатов'
 
-# insert_maker(2, 0)
 # insert_donate(0,1, 150)
 
 
+def get_do_task(telegram_id):
+    try:
+        con = p.connect(database='bot', user='postgres', host='localhost', password='VivaProgressio', port=5433)
+        cur = con.cursor()
+        cur.execute(f'''SELECT id, name, current_sum,create_date from public.botmain_task where user_id_id={telegram_id}''')
+        m = cur.fetchall()
+        aa = ''
+        print(m)
+        for i in m:
+            ms = list(i)
+            aa += f''' *Задания ID* - *{ms[0]}*\nНазвание {ms[1]}\nТекущая сумма донатов -{ms[2]}\nДата создания {ms[3]}\n'''
+        con.close()
+        return aa
+    except:
+        return 'Произошла ошибка, либо вы не являетесь исполнителем ниодного задания'
+
+def save_message_todb(message_id, telegram_id, text):
+    try:
+        con = p.connect(database='bot', user='postgres', host='localhost', password='VivaProgressio', port=5433)
+        cur = con.cursor()
+        try:
+            cur.execute(f'''select telegram_id from public.botmain_chat where telegram_id= {telegram_id}''')
+            info = list(cur.fetchone())
+        except:
+            info = 0
+        cur.close()
+        if info == 0:
+            cur = con.cursor()
+            cur.execute(f'''INSERT INTO public.botmain_chat(telegram_id) values({telegram_id})''')
+            cur.close()
+            con.commit()
+        cur = con.cursor()
+        cur.execute(f'''INSERT INTO public.botmain_message(telegram_id_id, message_id, text, answer) values({telegram_id}, {message_id}, '{text}', '')''')
+        con.commit()
+        return 1
+    except:
+        return 0
+
+def select_faq():
+    try:
+        con = p.connect(database='bot', user='postgres', host='localhost', password='VivaProgressio', port=5433)
+        cur = con.cursor()
+        cur.execute(
+            f'''SELECT * from public.botmain_faq where is_active=true''')
+        m = cur.fetchall()
+        aa = ''
+        for i in m:
+            ms = list(i)
+            aa += f'''{i[1]}\n'''
+        return aa
+    except:
+        return 'Ошибка'
+
+# a = save_message_todb('', 120929621, '')
+# print(a)
